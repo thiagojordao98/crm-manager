@@ -1,10 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { Request } from 'express';
+import { ExtractJwt, Strategy } from 'passport-jwt';
 import { IUserRepository } from '../../domain/repositories/user-repository.interface';
 
-export interface JwtPayload {
+export interface RefreshTokenPayload {
   sub: string;
   email: string;
   organizationId: string;
@@ -14,19 +15,31 @@ export interface JwtPayload {
 }
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+export class RefreshTokenStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(
-    configService: ConfigService,
+    private readonly configService: ConfigService,
     private readonly userRepository: IUserRepository,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request: Request) => {
+          return request?.cookies?.['refreshToken'];
+        },
+      ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
+      secretOrKey:
+        configService.get<string>('JWT_REFRESH_SECRET') || configService.get<string>('JWT_SECRET'),
+      passReqToCallback: true,
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(req: Request, payload: RefreshTokenPayload) {
+    const refreshToken = req.cookies?.['refreshToken'];
+
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
     const user = await this.userRepository.findById(payload.sub);
 
     if (!user) {
@@ -38,6 +51,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       email: payload.email,
       organizationId: payload.organizationId,
       role: payload.role,
+      refreshToken,
     };
   }
 }
