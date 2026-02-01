@@ -1,0 +1,93 @@
+schema: spec-driven
+
+# Project context
+# This is shown to AI when creating artifacts.
+context: |
+  Project: CRM Manager - Multi-channel Customer Relationship Management
+  Target: Brazilian SMEs
+
+  Tech Stack:
+    Frontend:
+      - React 19 + Vite 6
+      - TypeScript (strict mode)
+      - Tailwind CSS v4
+      - shadcn/ui components
+      - React Query (server state)
+      - Zustand (client state)
+      - React Hook Form + Zod validation
+      - Socket.io-client (real-time)
+    
+    Backend:
+      - NestJS v10+
+      - TypeScript (strict mode)
+      - Drizzle ORM
+      - PostgreSQL 16+
+      - Redis + Bull MQ
+      - Passport JWT authentication
+      - Socket.io (real-time)
+      - Winston (logging)
+    
+    Infrastructure:
+      - Docker + Docker Compose
+      - Docker Swarm (orchestration)
+      - PostgreSQL 16 with uuid-ossp, pg_trgm extensions
+      - Redis 7+
+
+  Architecture:
+    - Domain-Driven Design (DDD)
+    - Clean Architecture
+    - Repository Pattern
+    - Strategy Pattern (integrations)
+    - CQRS (complex queries)
+
+  Bounded Contexts:
+    1. Auth - Authentication and authorization
+    2. Contacts - Customer/lead management
+    3. Conversations - Multi-channel conversation orchestration
+    4. Messages - Message storage and delivery
+    5. Deals - Sales pipeline management
+    6. Integrations - External platform connectors
+    7. Payments - Payment processing
+
+  Conventions:
+    - Use conventional commits
+    - Follow Clean Architecture layers: Domain → Application → Infrastructure → Presentation
+    - All entities must have audit fields (createdAt, updatedAt)
+    - Use UUID for all IDs
+    - Multi-tenant: organizationId in all tenant tables
+    - Validation: class-validator on backend, Zod on frontend
+    - Testing: 80%+ coverage minimum
+
+  Domain:
+    - Multi-channel CRM platform
+    - Unified inbox for WhatsApp, Telegram, Discord, Slack, Trello
+    - Integrated payment processing (Mercado Pago/Stripe)
+    - Sales pipeline with Kanban visualization
+    - Real-time WebSocket notifications
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Keep proposals focused and under 1000 words
+    - Always include "User Stories" section
+    - Always include "Acceptance Criteria" section
+    - Include security considerations when applicable
+    - Reference bounded context explicitly
+    - Consider multi-tenant isolation
+
+  design:
+    - Follow Clean Architecture layers
+    - Define DTOs with validation rules
+    - Include database schema changes with Drizzle ORM syntax
+    - Specify API endpoints with full request/response examples
+    - Document error handling strategy
+    - Include WebSocket events if real-time feature
+    - Consider performance and scalability
+
+  tasks:
+    - Break tasks into chunks of max 4 hours
+    - Each task must be testable
+    - Include test cases in task description
+    - Reference specific files to create/modify
+    - Follow project file structure convention
+    - Include migration steps if database changes
