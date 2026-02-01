@@ -5,12 +5,14 @@ The CRM Manager authentication system is the first bounded context being impleme
 The system will support self-service registration targeting Brazilian SMEs, requiring minimal friction to achieve the goal of 10+ companies in 3 months. The backend is NestJS with Passport JWT, and the frontend is React 19 with Zustand for state management. The platform runs on Docker Swarm with horizontal scaling, requiring stateless authentication.
 
 **Current State:**
+
 - Database schemas exist but no migrations run
 - No auth module implemented
 - No frontend auth pages
 - No JWT configuration
 
 **Constraints:**
+
 - Multi-tenant architecture with row-level isolation via `organizationId`
 - Stateless backend for horizontal scaling
 - Self-service signup (no sales team involvement)
@@ -48,11 +50,13 @@ The system will support self-service registration targeting Brazilian SMEs, requ
 **Choice:** User provides organization name during signup, system creates organization automatically and assigns user as OWNER.
 
 **Alternatives Considered:**
+
 - Invite-only model: Rejected due to high friction for self-service business model
 - Post-registration organization setup: Rejected because user cannot exist without organization (`organizationId NOT NULL`)
 - Manual organization approval: Rejected due to lack of sales team and need for volume
 
-**Rationale:** 
+**Rationale:**
+
 - Brazilian SME market requires immediate trial access
 - Target of 10+ companies in 3 months needs frictionless signup
 - Database constraint enforces organization-first model
@@ -63,11 +67,13 @@ The system will support self-service registration targeting Brazilian SMEs, requ
 **Choice:** Short-lived access tokens stored in memory/localStorage, long-lived refresh tokens in httpOnly cookies.
 
 **Alternatives Considered:**
+
 - Session-based auth with Redis: Rejected due to stateful nature conflicting with horizontal scaling
 - Long-lived JWT only: Rejected due to security risk (cannot invalidate compromised tokens)
 - Access token in httpOnly cookie: Rejected due to CSRF complexity with CORS
 
 **Rationale:**
+
 - Access token in memory/localStorage allows easy API calls without cookie complexity
 - 15min TTL limits exposure if access token is compromised
 - Refresh token in httpOnly cookie prevents XSS attacks
@@ -80,11 +86,13 @@ The system will support self-service registration targeting Brazilian SMEs, requ
 **Choice:** Generate URL-friendly slug from organization name (e.g., "ACME Corp" → "acme-corp"), add numeric suffix on collision.
 
 **Alternatives Considered:**
+
 - UUID-based URLs: Rejected due to poor UX and memorability
 - Manual slug entry: Rejected to reduce signup friction
 - Email domain as slug: Rejected due to multiple orgs potentially sharing domain
 
 **Rationale:**
+
 - Friendly URLs improve UX and branding (e.g., `app.crm.com/acme-corp`)
 - Automatic generation removes signup friction
 - Collision handling with numeric suffix ("acme-corp-2") is acceptable for rare cases
@@ -95,11 +103,13 @@ The system will support self-service registration targeting Brazilian SMEs, requ
 **Choice:** Use bcrypt with 12 rounds (cost factor).
 
 **Alternatives Considered:**
+
 - Bcrypt 10 rounds: Rejected as too fast for modern hardware
 - Bcrypt 14+ rounds: Rejected due to performance impact (>200ms per hash on target hardware)
 - Argon2: Rejected due to lower ecosystem maturity in Node.js
 
 **Rationale:**
+
 - 12 rounds balances security (~250ms hash time) and UX
 - Bcrypt is battle-tested and widely supported in Node.js
 - Future: Can migrate to Argon2 with password rehashing on login
@@ -109,11 +119,13 @@ The system will support self-service registration targeting Brazilian SMEs, requ
 **Choice:** Generate random 32-byte token, store in `invitations` table with expiry (7 days), send via email with accept link.
 
 **Alternatives Considered:**
+
 - JWT invitation tokens: Rejected because cannot invalidate if user cancels
 - Short numeric codes: Rejected due to brute-force risk
 - Magic link (no password): Rejected for MVP complexity
 
 **Rationale:**
+
 - Database-stored tokens allow manual invalidation
 - 32-byte random token (base64url) has 256-bit entropy (secure against brute force)
 - 7-day expiry balances convenience and security
@@ -122,17 +134,20 @@ The system will support self-service registration targeting Brazilian SMEs, requ
 ### Decision 6: Rate Limiting Strategy
 
 **Choice:** Use express-rate-limit with Redis store.
+
 - POST `/auth/register`: 10 requests per hour per IP
 - POST `/auth/login`: 5 requests per minute per IP
 - POST `/auth/refresh`: 20 requests per minute per user
 - POST `/auth/invite`: 10 requests per hour per organization
 
 **Alternatives Considered:**
+
 - Per-user rate limiting only: Rejected because unauthenticated endpoints need IP-based protection
 - Stricter limits: Rejected due to legitimate retry scenarios (typos, password managers)
 - CAPTCHA on failures: Deferred to Phase 2
 
 **Rationale:**
+
 - Protects against credential stuffing, brute force, and enumeration attacks
 - Redis store allows rate limiting across multiple backend replicas
 - Different limits per endpoint match threat model and UX expectations
@@ -153,21 +168,25 @@ Infrastructure Layer (Repositories/External Services)
 ```
 
 **Domain Layer:**
+
 - Entities: `User`, `Organization`, `RefreshToken`, `Invitation`
 - Value Objects: `Email`, `Password` (with validation rules), `Role` (enum)
 - Domain Services: `PasswordHashingService`, `TokenGenerationService`
 
 **Application Layer:**
+
 - Use Cases: `RegisterUseCase`, `LoginUseCase`, `RefreshTokenUseCase`, `LogoutUseCase`, `InviteUserUseCase`, `AcceptInvitationUseCase`
 - DTOs: Request/Response DTOs with validation decorators
 - Interfaces: Repository interfaces for dependency inversion
 
 **Infrastructure Layer:**
+
 - Repositories: `UserRepository`, `OrganizationRepository`, `RefreshTokenRepository`, `InvitationRepository` (Drizzle ORM)
 - Services: `EmailService` (Bull Queue), `RedisService` (token blacklist)
 - Strategies: `JwtStrategy`, `RefreshTokenStrategy` (Passport)
 
 **Presentation Layer:**
+
 - Controllers: `AuthController` (REST endpoints)
 - Guards: `JwtAuthGuard`, `RolesGuard`, `OrganizationGuard`
 - Decorators: `@CurrentUser()`, `@CurrentOrganization()`, `@Roles()`
@@ -213,6 +232,7 @@ CREATE INDEX idx_invitations_expires ON invitations(expires_at);
 ### API Endpoints
 
 **POST /auth/register**
+
 ```typescript
 Request:
 {
@@ -247,6 +267,7 @@ Errors:
 ```
 
 **POST /auth/login**
+
 ```typescript
 Request:
 {
@@ -273,6 +294,7 @@ Errors:
 ```
 
 **POST /auth/refresh**
+
 ```typescript
 Request: (refreshToken from httpOnly cookie)
 
@@ -288,6 +310,7 @@ Errors:
 ```
 
 **POST /auth/logout**
+
 ```typescript
 Request: (Authorization: Bearer <accessToken>)
 
@@ -299,6 +322,7 @@ Side effects:
 ```
 
 **POST /auth/invite**
+
 ```typescript
 Request: (Requires OWNER or ADMIN role)
 {
@@ -325,6 +349,7 @@ Errors:
 ```
 
 **POST /auth/invite/:token/accept**
+
 ```typescript
 Request:
 {
@@ -355,18 +380,18 @@ Errors:
 ```typescript
 // Access Token (15min)
 {
-  sub: string;           // userId
+  sub: string; // userId
   email: string;
   organizationId: string;
-  role: "owner" | "admin" | "agent" | "viewer";
+  role: 'owner' | 'admin' | 'agent' | 'viewer';
   iat: number;
   exp: number;
 }
 
 // Refresh Token (7 days)
 {
-  sub: string;           // userId
-  tokenId: string;       // UUID of refresh_tokens record
+  sub: string; // userId
+  tokenId: string; // UUID of refresh_tokens record
   iat: number;
   exp: number;
 }
@@ -375,6 +400,7 @@ Errors:
 ### Frontend Architecture
 
 **Auth Store (Zustand):**
+
 ```typescript
 interface AuthState {
   user: User | null;
@@ -382,7 +408,7 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+
   // Actions
   setAuth: (data: AuthResponse) => void;
   clearAuth: () => void;
@@ -391,6 +417,7 @@ interface AuthState {
 ```
 
 **API Client (Axios):**
+
 ```typescript
 // Request interceptor: Add access token to headers
 axios.interceptors.request.use((config) => {
@@ -419,29 +446,30 @@ axios.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 ```
 
 **Protected Route Component:**
+
 ```typescript
 function ProtectedRoute({ children, requiredRole }: Props) {
   const { isAuthenticated, user, isLoading } = useAuth();
-  
+
   if (isLoading) return <LoadingSpinner />;
   if (!isAuthenticated) return <Navigate to="/auth/login" />;
-  
+
   if (requiredRole && !hasRole(user.role, requiredRole)) {
     return <Navigate to="/403" />;
   }
-  
+
   return <>{children}</>;
 }
 ```
 
 ## Risks / Trade-offs
 
-**[Risk] Refresh token stored in browser cookie vulnerable to CSRF** 
+**[Risk] Refresh token stored in browser cookie vulnerable to CSRF**
 → **Mitigation:** Use SameSite=Strict cookie attribute + Origin header validation on refresh endpoint + Short-lived access tokens limit damage window
 
 **[Risk] Access token in localStorage vulnerable to XSS**
@@ -474,12 +502,14 @@ function ProtectedRoute({ children, requiredRole }: Props) {
 ## Migration Plan
 
 **Phase 1: Database Setup**
+
 1. Create Drizzle migration for `refresh_tokens` and `invitations` tables
 2. Add indexes for performance
 3. Run migration in development environment
 4. Verify foreign key constraints and cascading deletes
 
 **Phase 2: Backend Implementation**
+
 1. Implement domain entities and value objects
 2. Create repository interfaces and implementations
 3. Implement use cases with unit tests (80%+ coverage)
@@ -492,6 +522,7 @@ function ProtectedRoute({ children, requiredRole }: Props) {
 10. E2E test for complete registration → login → protected resource flow
 
 **Phase 3: Frontend Implementation**
+
 1. Create Zustand auth store
 2. Implement Axios interceptors for token management
 3. Build registration form with validation (React Hook Form + Zod)
@@ -502,12 +533,14 @@ function ProtectedRoute({ children, requiredRole }: Props) {
 8. Handle token refresh errors gracefully
 
 **Phase 4: Testing & Security**
+
 1. Security audit: OWASP Top 10 checklist
 2. Load testing: Verify rate limiting under concurrent requests
 3. Penetration testing: Token vulnerabilities, enumeration attacks
 4. Cross-tenant isolation testing: Verify organizationId filtering prevents data leaks
 
 **Rollback Strategy:**
+
 - Database migration rollback: Drop new tables, no data loss (fresh system)
 - Backend deployment: Blue-green deployment with health checks
 - Frontend deployment: CDN rollback to previous version

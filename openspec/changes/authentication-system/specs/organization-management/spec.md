@@ -85,7 +85,7 @@ The system SHALL generate slugs in kebab-case format: lowercase letters, numbers
 
 - **WHEN** organization name is "ACME Corp & Co.!"
 - **THEN** the system converts to lowercase: "acme corp & co.!"
-- **THEN** special characters are removed: "acme corp  co"
+- **THEN** special characters are removed: "acme corp co"
 - **THEN** spaces are replaced with hyphens: "acme-corp-co"
 - **THEN** multiple consecutive hyphens are collapsed: "acme-corp-co"
 - **THEN** leading/trailing hyphens are trimmed

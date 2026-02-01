@@ -31,11 +31,13 @@ The CRM Manager is a multi-tenant SaaS platform targeting Brazilian SMEs. Withou
 ## Impact
 
 **Database Schema:**
+
 - Tables already exist: `users`, `organizations`
 - New tables needed: `refresh_tokens`, `invitations`
 - Indexes needed: `users.email`, `organizations.slug`, `refresh_tokens.token`, `invitations.email`
 
 **Backend Modules:**
+
 - New module: `src/modules/auth/` following Clean Architecture layers (domain, application, infrastructure, presentation)
 - Use cases: RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LogoutUseCase, InviteUserUseCase, AcceptInvitationUseCase
 - Guards: JwtAuthGuard, RolesGuard, OrganizationGuard
@@ -43,18 +45,21 @@ The CRM Manager is a multi-tenant SaaS platform targeting Brazilian SMEs. Withou
 - DTOs: RegisterDto, LoginDto, AuthResponseDto, InviteUserDto
 
 **Frontend Components:**
+
 - New pages: `/auth/register`, `/auth/login`, `/auth/invite/:token`
 - Forms: RegistrationForm, LoginForm, InviteAcceptForm (React Hook Form + Zod)
 - Auth context: Zustand store for user state, token management, organization context
 - API client: Axios interceptors for token refresh, automatic retry on 401
 
 **Infrastructure:**
+
 - Passport JWT middleware configuration
 - Rate limiting middleware (express-rate-limit) on POST `/auth/*` endpoints
 - CORS configuration allowing frontend origin with credentials
 - Redis for refresh token blacklist (logout/security events)
 
 **Security Considerations:**
+
 - Password hashing: bcrypt 12 rounds (balance between security and performance)
 - JWT secrets: Strong random secrets stored in environment variables (separate for access/refresh)
 - Token rotation: Refresh tokens are single-use (invalidated after generating new access token)
@@ -65,11 +70,13 @@ The CRM Manager is a multi-tenant SaaS platform targeting Brazilian SMEs. Withou
 - CSRF protection: SameSite cookies + token validation
 
 **Dependencies:**
+
 - Backend: `@nestjs/passport`, `@nestjs/jwt`, `passport-jwt`, `bcrypt`, `class-validator`, `class-transformer`
 - Frontend: `react-hook-form`, `zod`, `@tanstack/react-query`, `zustand`
 - Both: TypeScript types for DTOs shared via monorepo workspace
 
 **Testing Requirements:**
+
 - Unit tests: Use cases (80%+ coverage), domain logic, validators
 - Integration tests: Auth endpoints, JWT validation, refresh flow
 - E2E tests: Complete registration → login → protected route → logout flow
